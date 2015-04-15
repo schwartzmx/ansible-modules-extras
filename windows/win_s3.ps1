@@ -46,9 +46,7 @@ If (-Not ($list -match "AWSPowerShell")){
         Fail-Json $result "Error downloading AWS-SDK from $url and saving as $sdkdest"
     }
     Try{
-        msiexec.exe /i $sdkdest /qb
-        # Give it a chance to install, so that it can be imported
-        sleep 10
+        Start-Process -FilePath msiexec.exe -ArgumentList "/i $sdkdest /qb" -Verb Runas -PassThru -Wait | out-null
     }
     Catch {
         Fail-Json $result "Error installing $sdkdest"
@@ -61,13 +59,34 @@ Else {
 
 # Import Module
 Try {
-    Import-Module AWSPowerShell
+    Try {
+        Import-Module 'C:\Program Files (x86)\AWS Tools\PowerShell\AWSPowerShell\AWSPowerShell.psd1'
+    }
+    Catch {
+        Import-Module AWSPowerShell
+    }
 }
 Catch {
     Fail-Json $result "Error importing module AWSPowerShell"
 }
 
 # ---Get Parameters--- (BUCKET, KEY, LOCAL, RM, METHOD, ACCESS_KEY, SECRET_KEY)
+# Credentials - must come before any AWS access methods (like Test-S3Bucket)
+If ($params.access_key -And $params.secret_key) {
+    $access_key = $params.access_key.toString()
+    $secret_key = $params.secret_key.toString()
+
+    Set-AWSCredentials -AccessKey $access_key -SecretKey $secret_key -StoreAs default
+}
+ElseIf ($params.access_key -Or $params.secret_key) {
+    If ($params.access_key){
+        Fail-Json $result "Missing credential: secret_key"
+    }
+    Else {
+        Fail-Json $result "Missing credential: access_key"
+    }
+}
+
 # BUCKET
 If ($params.bucket) {
     $bucket = $params.bucket.toString()
@@ -113,6 +132,14 @@ Else {
     Fail-Json $result "missing required argument: method"
 }
 
+# OVERWRITE
+If ($params.overwrite -eq "true" -Or $params.overwrite -eq "yes") {
+    $overwrite = $true
+}
+Else {
+    $overwrite = $false
+}
+
 # LOCAL (file)
 If ($params.local) {
     $local = $params.local.toString()
@@ -140,28 +167,17 @@ If ($params.local) {
         If ($local[$local.length-1] -eq "/" -Or $local[$local.length-1] -eq "\") {
             Fail-Json $result "When downloading a file/folder, please specify the save name of the file/folder as well as the valid path, for example: C:\Path\To\Save\To\NAME.zip or C:\Path\To\Save\DIRECTORYNAME"
         }
+
+
+        If ($overwrite -eq $false -And (Test-Path $local -PathType Leaf)) {
+           Exit-Json $result "The file already exists."
+        }
     }
 }
 Else {
     Fail-Json $result "missing required argument: local"
 }
 
-
-# Credentials
-If ($params.access_key -And $params.secret_key) {
-    $access_key = $params.access_key.toString()
-    $secret_key = $params.secret_key.toString()
-
-    Set-AWSCredentials -AccessKey $access_key -SecretKey $secret_key -StoreAs default
-}
-ElseIf ($params.access_key -Or $params.secret_key) {
-    If ($params.access_key){
-        Fail-Json $result "Missing credential: secret_key"
-    }
-    Else {
-        Fail-Json $result "Missing credential: access_key"
-    }
-}
 
 # Upload file or Directory
 If ($method -eq "upload"){
@@ -203,7 +219,7 @@ If ($method -eq "upload"){
             }
         }
         Catch {
-            Fail-Json $result "Error occured when uploading files from $local to $bucket$key"
+            Fail-Json $result "Error occured when uploading files from $local to Bucket: $bucket -> Key: $key"
         }
     }
 }
@@ -216,7 +232,7 @@ ElseIf ($method -eq "download"){
             $result.changed = $true
         }
         Catch {
-            Fail-Json $result "Error downloading $bucket$key and saving as $local"
+            Fail-Json $result "Error downloading Bucket: $bucket -> Key: $key and saving as $local"
         }
     }
     # Key prefix (downloading a directory)
@@ -226,7 +242,7 @@ ElseIf ($method -eq "download"){
             $result.changed = $true
         }
         Catch {
-            Fail-Json $result "Error in downloading virtual dir $bucket$key and saving as $local.  Ensure the path exists and ensure credentials are authorized for access."
+            Fail-Json $result "Error in downloading virtual dir Bucket: $bucket -> Key: $key and saving as $local.  Ensure the path exists and ensure credentials are authorized for access."
         }
     }
 }

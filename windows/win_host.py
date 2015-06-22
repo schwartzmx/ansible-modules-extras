@@ -25,9 +25,9 @@ DOCUMENTATION = '''
 ---
 module: win_host
 version_added: ""
-short_description: Hostname setting, Timezone setting, and domain unjoining/joining module.
+short_description: Hostname setting, and domain unjoining/joining module.
 description:
-     - Change the host's timezone, hostname, and domain.  Allows active-directory domain joining/unjoining, along with workgroup joining/unjoining. Uses Powershell's Add-Computer and Remove-Computer.
+     - Change the host's hostname, and domain.  Allows active-directory domain joining/unjoining, along with workgroup joining/unjoining. Uses Powershell's Add-Computer and Remove-Computer.
 options:
   hostname:
     description:
@@ -80,12 +80,6 @@ options:
     required: no
     default: none
     aliases: []
-  timezone:
-    description:
-      - Timezone to set host to Ex. Central Standard Time
-    required: no
-    default: none
-    aliases: []
   options:
     description:
       - Single or comma separated list of options (AccountCreate, Win9XUpgrade, UnsecuredJoin, PasswordPass, JoinWithNewName, JoinReadOnly, InstallInvoke)
@@ -124,15 +118,15 @@ author: Phil Schwartz
 '''
 
 EXAMPLES = '''
-# Change Hostname and Timezone
-$ ansible -i hosts -m win_host -a "hostname=MyNewComp timezone='Eastern Standard Time'" all
+# Change Hostname
+$ ansible -i hosts -m win_host -a "hostname=MyNewComp" all
 # Add hostnames to domain
-$ ansible -i hosts -m win_host -a "hostname=Comp1,Comp2,Comp3 timezone='Central Standard Time' domain=host.com state=present server=xyz.host.com user=Admin pass=Secret restart=true" all
+$ ansible -i hosts -m win_host -a "hostname=Comp1,Comp2,Comp3 domain=host.com state=present server=xyz.host.com user=Admin pass=Secret restart=true" all
 
 # Playbook example
-# Rename machine, change timezone, and add to the specified domain
+# Rename machine, and add to the specified domain
 ---
-- name: Rename host, change timezone, and add to domain
+- name: Rename host, and add to domain
   win_host:
     hostname: "NewComputerName"
     domain: "domainName.com"
@@ -141,7 +135,6 @@ $ ansible -i hosts -m win_host -a "hostname=Comp1,Comp2,Comp3 timezone='Central 
     state: "present"
     user: "domainName\Administrator"
     pass: "SecretPassword"
-    timezone: "Central Standard Time"
     server: "domaincontroller.domainName.com"
 - name: Wait for reboot
   local_action:

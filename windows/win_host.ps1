@@ -53,16 +53,6 @@ If ($params.rm -eq "true" -Or $params.rm -eq "yes") {
 }
 # Continue as normal
 Else {
-    If ($params.timezone) {
-        Try {
-            C:\Windows\System32\tzutil /s $params.timezone.toString()
-            $result.changed = $true
-        }
-        Catch {
-            Fail-Json $result "Error setting timezone to: $params.timezone. Example: Central Standard Time"
-        }
-    }
-
     # Can enter just one, or as a comma seperated list
     If ($params.hostname) {
         $hostname = $params.hostname.toString().split(",")

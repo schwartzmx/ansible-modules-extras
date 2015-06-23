@@ -52,6 +52,11 @@ options:
       - tar
       - gzip
     aliases: []
+  creates:
+    description:
+      - If the specified file or directory exists then no changes will be made.
+    required: false
+    aliases: []
   rm:
     description:
       - Remove the (unzipped) src file, after zipping
@@ -68,11 +73,11 @@ author: Phil Schwartz
 
 EXAMPLES = '''
 # Zips directory on Windows Host and saves as SRC.zip
-$ ansible -i hosts -m win_zip -a "src=C:\\Users\Administrator\SRC dest=C:\\Users\Administrator\SRC.zip rm=true" all
+$ ansible -i hosts -m win_zip -a "src=C:\\Users\\Administrator\\SRC dest=C:\\Users\\Administrator\\SRC.zip rm=true" all
 # Zips a file on Windows Host and saves as xfile.txt.zip
-$ ansible -i hosts -m win_zip -a "src=C:\\Users\Phil\xfile.txt dest=C:\\xfile.txt" all
+$ ansible -i hosts -m win_zip -a "src=C:\\Users\\Phil\\xfile.txt dest=C:\\xfile.txt" all
 # BZip all files in a directory, and move them all into a new directory, and removes all files within the src folder
-$ ansible -i hosts -m win_zip -a "src=C:\\Logs\ dest=C:\\UploadFolder type=bzip rm=true"
+$ ansible -i hosts -m win_zip -a "src=C:\\Logs\\ dest=C:\\UploadFolder type=bzip rm=true"
 # Playbook example
 ---
 - name: Zip Logs
@@ -81,7 +86,7 @@ $ ansible -i hosts -m win_zip -a "src=C:\\Logs\ dest=C:\\UploadFolder type=bzip 
   tasks:
   - name: win_zip the inet log directory and then remove the src directory after completion
     win_zip:
-      src: 'C:\\inetpub\wwwroot\Logs'
+      src: 'C:\\inetpub\\wwwroot\\Logs'
       dest: 'C:\\Logs\1-1-15.ServerLogs.zip'
       rm: true
 
@@ -92,13 +97,14 @@ $ ansible -i hosts -m win_zip -a "src=C:\\Logs\ dest=C:\\UploadFolder type=bzip 
   tasks:
     - name: Tar folder
       win_zip:
-        src: C:\\folder\\to\\tar
-        dest: C:\\TA.tar
+        src: 'C:\\folder\\to\\tar'
+        dest: 'C:\\TA.tar'
         type: tar
+        creates: 'C:\\TA.tar'
 
     - name: GZip Tatar
       win_zip:
-        src: C:\\TA.tar
-        dest: C:\\Totz.gz
+        src: 'C:\\TA.tar'
+        dest: 'C:\\Totz.gz'
         type: gzip
 '''

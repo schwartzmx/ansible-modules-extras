@@ -1,7 +1,7 @@
 #!powershell
 # This file is part of Ansible
 #
-# Copyright 2014, Phil Schwartz <schwartzmx@gmail.com>
+# Copyright 2015, Phil Schwartz <schwartzmx@gmail.com>
 #
 # Ansible is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,10 +26,12 @@ $result = New-Object psobject @{
     changed = $false
 }
 
-# Requires PSCX, will be installed if it isn't found
-# Pscx-3.2.0.msi
-$url = "http://download-codeplex.sec.s-msft.com/Download/Release?ProjectName=pscx&DownloadId=923562&FileTime=130585918034470000&Build=20959"
-$dest = "C:\Pscx-3.2.0.msi"
+# Check creates to begin
+If ($params.creates) {
+    If (Test-Path $params.creates) {
+        Exit-Json $result "The 'creates' file already exists."
+    }
+}
 
 # Global flags
 $isLeaf = $false
@@ -37,51 +39,24 @@ $isContainer = $false
 
 # Check if PSCX is installed
 $list = Get-Module -ListAvailable
-# If not download it and install
 If (-Not ($list -match "PSCX")) {
-    # Try install with chocolatey
-    Try {
-        cinst -force PSCX -y
-        $choco = $true
-    }
-    Catch {
-        $choco = $false
-    }
-    # install from downloaded msi if choco failed or is not present
-    If ($choco -eq $false) {
-        Try {
-            $client = New-Object System.Net.WebClient
-            $client.DownloadFile($url, $dest)
-        }
-        Catch {
-            Fail-Json $result "Error downloading PSCX from $url and saving as $dest"
-        }
-        Try {
-            Start-Process -FilePath msiexec.exe -ArgumentList "/i $dest /qb" -Verb Runas -PassThru -Wait | out-null
-        }
-        Catch {
-            Fail-Json $result "Error installing $dest"
-        }
-    }
-    Set-Attr $result.win_zip "pscx_status" "pscx was installed"
-    $installed = $true
+    Set-Attr $result.win_zip "pscx_status" "absent"
+    $pscxPresent = $false
 }
 Else {
+    $pscxPresent = $true
     Set-Attr $result.win_zip "pscx_status" "present"
 }
 
 # Import
 Try {
-    If ($installed) {
+    If ($pscxPresent) {
         Try {
             Import-Module 'C:\Program Files (x86)\Powershell Community Extensions\pscx3\pscx\pscx.psd1'
         }
         Catch {
             Import-Module PSCX
         }
-    }
-    Else {
-        Import-Module PSCX
     }
 }
 Catch {
@@ -130,6 +105,11 @@ Else {
 #TYPE
 If ($params.type -eq "bzip" -Or $params.type -eq "tar" -Or $params.type -eq "gzip") {
     $type = $params.type.toString()
+
+    # Requires PSCX
+    If (-Not $pscxPresent) {
+        Fail-Json $result "PowerShellCommunityExtensions PowerShell Module (PSCX) is required for extracting non-'.zip' compressed archives."
+    }
 }
 Else {
     $type = "zip"
@@ -170,10 +150,26 @@ Else {
 # Compress
 Try {
     If ($type -eq "zip") {
-        # On success Write-Zip writes to std-out. This is the reason for piping to out-null (And also b/c their -Quiet switch won't work).
-        # This allows for the try-catch to still catch errors, but not fail on success output.
-        Write-Zip -Path $src -OutputPath $dest -Level 9 -IncludeEmptyDirectories | out-null
-        $result.changed = $true
+        # Use PSCX if it is present, else use the built in PowerShell util
+        If ($pscxPresent) {
+            # On success Write-Zip writes to std-out. This is the reason for piping to out-null (And also b/c their -Quiet switch won't work).
+            # This allows for the try-catch to still catch errors, but not fail on success output.
+            Write-Zip -Path $src -OutputPath $dest -Level 9 -IncludeEmptyDirectories | out-null
+            $result.changed = $true
+        }
+        Else {
+            # Uses the built-in shell app to copy to a zip archive
+            $fileList = Get-ChildItem $src
+            Write-Host $null >> $dest # equivalent to `touch $destinationFile`
+            $shellApplication = new-object -com shell.application
+            $zipPackage = $shellApplication.NameSpace($dest)
+
+            ForEach($file in $fileList) { 
+                $zipPackage.CopyHere($file.FullName)
+                Start-sleep -milliseconds 500
+            }
+            $result.changed = $true
+        }
     }
     ElseIf ($type -eq "bzip") {
         If ($isLeaf) {
@@ -242,5 +238,4 @@ Set-Attr $result.win_zip "rm" $rm.toString()
 Set-Attr $result.win_zip "type" $type.toString()
 
 Exit-Json $result;
-
 

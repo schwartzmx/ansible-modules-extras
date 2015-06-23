@@ -33,7 +33,7 @@ $result = New-Object psobject @{
 # Remove account from ActiveDirectory on domain controller
 If ($params.rm -eq "true" -Or $params.rm -eq "yes") {
     If ($params.hostname) {
-        $user = $params.hostname.toString()
+        $domainUser = $params.hostname.toString()
         Try {
           Import-Module ActiveDirectory
         }
@@ -41,7 +41,14 @@ If ($params.rm -eq "true" -Or $params.rm -eq "yes") {
           Fail-Json $result "Error importing module ActiveDirectory.  Please ensure this is being run on a domain controller with Active Directory installed."
         }
         Try {
-          ([ADSI]([ADSISearcher]"samaccountname=$user`$").FindOne().Path).PSBase.DeleteTree()
+          $adUser = ([ADSI]([ADSISearcher]"samaccountname=$domainUser").FindOne().Path).PSBase
+          If ($adUser) {
+            $adUser.DeleteTree()
+            $result.changed = $true
+          }
+          Else {
+            Exit-Json $result "The AD user/computer does not exist."
+          }
         }
         Catch {
             Fail-Json $result "An error occured when attempting to remove account: $user"

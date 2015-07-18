@@ -19,8 +19,6 @@
 # WANT_JSON
 # POWERSHELL_COMMON
 
-$url = "http://sdk-for-net.amazonwebservices.com/latest/AWSToolsAndSDKForNet.msi"
-$sdkdest = "C:\AWSPowerShell.msi"
 
 # Global flags
 $isLeaf = $false
@@ -38,37 +36,26 @@ $result = New-Object psobject @{
 $list = Get-Module -ListAvailable
 # If not download it and install
 If (-Not ($list -match "AWSPowerShell")){
-    Try{
-        $client = New-Object System.Net.WebClient
-        $client.DownloadFile($url, $sdkdest)
-    }
-    Catch {
-        Fail-Json $result "Error downloading AWS-SDK from $url and saving as $sdkdest"
-    }
-    Try{
-        Start-Process -FilePath msiexec.exe -ArgumentList "/i $sdkdest /qb" -Verb Runas -PassThru -Wait | out-null
-    }
-    Catch {
-        Fail-Json $result "Error installing $sdkdest"
-    }
-    Set-Attr $result.win_s3 "aws_sdk_status" "aws_sdk was installed"
+    Fail-Json $result "AWSPowerShell installation is required on the machine before using this module."
+    Set-Attr $result.win_s3 "aws_powershell_status" "absent"
 }
 Else {
-    Set-Attr $result.win_s3 "aws_sdk_status" "present"
-}
+    Set-Attr $result.win_s3 "aws_powershell_status" "present"
 
-# Import Module
-Try {
+    # Import the module
     Try {
-        Import-Module 'C:\Program Files (x86)\AWS Tools\PowerShell\AWSPowerShell\AWSPowerShell.psd1'
+        Try {
+            Import-Module 'C:\Program Files (x86)\AWS Tools\PowerShell\AWSPowerShell\AWSPowerShell.psd1'
+        }
+        Catch {
+            Import-Module AWSPowerShell
+        }
     }
     Catch {
-        Import-Module AWSPowerShell
+        Fail-Json $result "Error importing module AWSPowerShell"
     }
 }
-Catch {
-    Fail-Json $result "Error importing module AWSPowerShell"
-}
+
 
 # ---Get Parameters--- (BUCKET, KEY, LOCAL, RM, METHOD, ACCESS_KEY, SECRET_KEY)
 # Credentials - must come before any AWS access methods (like Test-S3Bucket)
@@ -76,7 +63,7 @@ If ($params.access_key -And $params.secret_key) {
     $access_key = $params.access_key.toString()
     $secret_key = $params.secret_key.toString()
 
-    Set-AWSCredentials -AccessKey $access_key -SecretKey $secret_key -StoreAs default
+    Set-AWSCredentials -AccessKey $access_key -SecretKey $secret_key -StoreAs win_s3
 }
 ElseIf ($params.access_key -Or $params.secret_key) {
     If ($params.access_key){
@@ -248,6 +235,14 @@ ElseIf ($method -eq "download"){
 }
 Else {
     Fail-Json $result "An invalid method was trying to be carried out"
+}
+
+# Explicitly clear the provided credentials afterwards
+Try {
+    Clear-AWSCredentials -StoredCredentials win_s3
+}
+Catch {
+    Fail-Json $result "An error occured when clearing the provided AWS credentials from the machine."
 }
 
 

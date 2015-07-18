@@ -25,9 +25,10 @@ DOCUMENTATION = '''
 ---
 module: win_s3
 version_added: ""
-short_description: Upload and download from AWS S3
+short_description: Upload and download from AWS S3 on Windows
 description:
-     - Uses AWS_SDK for Powershell.  If the module is not found it will be downloaded.  More Info: http://aws.amazon.com/powershell/.  Uses the SDK, with either provided credentials or IAM role credentials on EC2 instances to upload and download files from S3.  If provided, the credentials are set on the remote machine as the default profile (but only for this session).
+     - This module is meant to be used for downloading/uploading to/from S3 on the Windows node machine. Uses the AWS_SDK for Powershell.  Uses the SDK, with either provided credentials or IAM role credentials on EC2 instances to upload and download files from S3.  If provided, the credentials are set on the remote machine as the win_s3 profile (but only for this session).
+requirements: [ "AWSPowerShell"]
 options:
   bucket:
     description:
@@ -101,6 +102,13 @@ $ ansible -i hosts -m win_s3 -a "bucket=apps key=My/Web/APP/ local=C:\Users\Me\W
   hosts: all
   gather_facts: false
   tasks:
+  - name: Download AWSPowerShell
+    win_get_url:
+      url: 'http://sdk-for-net.amazonwebservices.com/latest/AWSToolsAndSDKForNet.msi'
+      dest: 'C:\\AWSPowerShell.msi'
+  - name: Install AWSPowerShell
+    win_msi:
+      path: 'C:\\AWSPowerShell.msi'
   - name: Download app
     win_s3:
       bucket: 'app_deploys'

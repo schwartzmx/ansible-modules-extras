@@ -24,7 +24,7 @@
 DOCUMENTATION = '''
 ---
 module: win_host
-version_added: ""
+version_added: "2.0"
 short_description: Hostname setting, and domain unjoining/joining module.
 description:
      - Change the host's hostname, and domain.  Allows active-directory domain joining/unjoining, along with workgroup joining/unjoining. Uses Powershell's Add-Computer and Remove-Computer.
@@ -43,55 +43,46 @@ options:
       - present
       - absent
     default: none
-    aliases: []
   domain:
     description:
       - Domain name to join/unjoin
     required: no
     default: none
-    aliases: []
   rm:
     description:
       - *Specified when the play acts on a DOMAIN CONTROLLER, it will remove the given hostname from the ActiveDirectory Computer users.
     required: no
     default: none
-    aliases: []
   workgroup:
     description:
       - Workgroup name to join/unjoin
     required: no
     default: WORKGROUP
-    aliases: []
   server:
     description:
       - Name of a domain controller
     required: no
     default: none
-    aliases: []
   user:
     description:
       - Domain user with permission to join/unjoin
     required: no
     default: none
-    aliases: []
   pass:
     description:
       - Domain user password
     required: no
     default: none
-    aliases: []
   options:
     description:
       - Single or comma separated list of options (AccountCreate, Win9XUpgrade, UnsecuredJoin, PasswordPass, JoinWithNewName, JoinReadOnly, InstallInvoke)
     required: no
     default: none
-    aliases: []
   oupath:
     description:
       - Specifies an organizational unit for the domain account
     required: no
     default: none
-    aliases: []
   restart:
     description:
       - Restart the host after completion
@@ -102,7 +93,6 @@ options:
       - false
       - no
     default: false
-    aliases: []
   unsecure:
     description:
       - Perform an unsecure join, or unjoin.
@@ -113,8 +103,7 @@ options:
       - false
       - no
     default: false
-    aliases: []
-author: Phil Schwartz
+author: Phil Schwartz (@schwartzmx)
 '''
 
 EXAMPLES = '''

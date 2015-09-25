@@ -126,16 +126,6 @@ Else {
         $domain = ""
     }
 
-    If ($params.workgroup) {
-        $workgroup = $params.workgroup.toString()
-        Set-Attr $result.win_host "workgroup" $workgroup
-        $workgroup = "-WorkgroupName '$workgroup'"
-    }
-    Else {
-        Set-Attr $result.win_host "workgroup" "WORKGROUP"
-        $workgroup = "-WorkgroupName 'WORKGROUP'"
-    }
-
     If ($params.user -and $params.pass) {
         $user = $params.user.toString()
         $pass = $params.pass.toString()
@@ -144,6 +134,21 @@ Else {
         $local = "-LocalCredential"
 
         $creds = $true
+    }
+
+    If ($params.workgroup) {
+        $workgroup = $params.workgroup.toString()
+        Set-Attr $result.win_host "workgroup" $workgroup
+        $workgroup = "-WorkgroupName '$workgroup'"
+    }
+    Else {
+        If ($creds) {
+            Set-Attr $result.win_host "workgroup" "WORKGROUP"
+            $workgroup = "-WorkgroupName 'WORKGROUP'"
+        }
+        Else {
+            $workgroup = ""
+        }
     }
 
     If (($params.restart -eq "true") -or ($params.restart -eq "yes")) {

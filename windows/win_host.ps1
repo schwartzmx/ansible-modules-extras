@@ -62,8 +62,8 @@ If ($params.rm -eq "true" -Or $params.rm -eq "yes") {
 Else {
     # Can enter just one, or as a comma seperated list
     If ($params.hostname) {
+        Set-Attr $result.win_host "hostname" $hostname
         $hostname = $params.hostname.toString().split(",")
-        Set-Attr $result.win_host "hostname" $hostname.toString()
         $computername = "-ComputerName '$hostname'"
 
         If ($hostname.length -eq 1 -and -Not([System.Net.Dns]::GetHostName() -eq $hostname[0])) {

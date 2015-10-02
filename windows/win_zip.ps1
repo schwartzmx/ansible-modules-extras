@@ -52,10 +52,11 @@ Else {
 Try {
     If ($pscxPresent) {
         Try {
-            Import-Module 'C:\Program Files (x86)\Powershell Community Extensions\pscx3\pscx\pscx.psd1'
+            Import-Module PSCX
         }
         Catch {
-            Import-Module PSCX
+            $ex = $_.Exception
+            Fail-Json $result "Error importing module PSCX.  Exception: $ex.Message"
         }
     }
 }
